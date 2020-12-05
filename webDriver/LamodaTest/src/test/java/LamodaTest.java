@@ -1,6 +1,4 @@
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -9,8 +7,13 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class LamodaTest {
 
@@ -41,6 +44,34 @@ public class LamodaTest {
                 .stream().map(WebElement::getText).collect(Collectors.toList());
 
         Assert.assertTrue(titles.stream().anyMatch(title -> title.toLowerCase().contains(searchKey)));
+    }
+
+    @Test
+    public void testSortByPrice() {
+        final String categoryButtonPath = "//div[@id='menu-wrapper']//a[contains(.,'Одежда')]";
+        final String sortTypeButtonPath = "//span[@class='products-catalog__sort']//span[@class='button button_right button_wo-pdng-r']";
+        final String sortPriceAscendingButtonPath = "//li[@data-order='price_asc']";
+        final String sortResultElementPath = "//div[@class='products-list-item']";
+
+        driver.get("https://www.lamoda.by/");
+
+        wait.until(ExpectedConditions.elementToBeClickable(By.xpath(categoryButtonPath))).click();
+
+        wait.until(ExpectedConditions.elementToBeClickable(By.xpath(sortTypeButtonPath))).click();
+
+        wait.until(ExpectedConditions.elementToBeClickable(By.xpath(sortPriceAscendingButtonPath))).click();
+
+        List<Double> prices = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.xpath(sortResultElementPath)))
+                .stream().map(item -> {
+                    Matcher matcher = Pattern.compile("\\d+.\\d{2,2}").matcher(item.getText());
+                    List<Double> itemPrices = new ArrayList<>();
+                    while(matcher.find()) {
+                        itemPrices.add(Double.valueOf(matcher.group()));
+                    }
+                    return itemPrices.stream().min(Double::compareTo).orElse(.0);
+                }).collect(Collectors.toList());
+
+        Assert.assertTrue(IntStream.range(0, prices.size() - 1).noneMatch(i -> prices.get(i) > prices.get(i+1)));
     }
 
     @AfterMethod
