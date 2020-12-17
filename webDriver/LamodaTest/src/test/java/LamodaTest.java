@@ -46,7 +46,7 @@ public class LamodaTest {
         wait.until(ExpectedConditions.elementToBeClickable(By.xpath(searchButtonPath))).click();
 
         List<String> titles = wait.until(ExpectedConditions
-                .visibilityOfAllElementsLocatedBy(By.xpath(searchResultItemTypePath)))
+                .presenceOfAllElementsLocatedBy(By.xpath(searchResultItemTypePath)))
                 .stream().map(WebElement::getText).collect(Collectors.toList());
 
         Assert.assertTrue(titles.stream().anyMatch(title -> title.toLowerCase().contains(searchKey)));
