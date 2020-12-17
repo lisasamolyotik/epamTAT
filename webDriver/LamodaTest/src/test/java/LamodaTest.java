@@ -1,6 +1,10 @@
 import io.github.bonigarcia.wdm.WebDriverManager;
-import org.openqa.selenium.*;
+import org.openqa.selenium.By;
+import org.openqa.selenium.Dimension;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
@@ -9,7 +13,6 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,16 +27,20 @@ public class LamodaTest {
     @BeforeMethod
     public void setup() {
         WebDriverManager.chromedriver().setup();
-        driver = new ChromeDriver();
-        driver.manage().window().maximize();
+        ChromeOptions chromeOptions = new ChromeOptions();
+        chromeOptions.addArguments("--headless");
+        chromeOptions.addArguments("--no-sandbox");
+        chromeOptions.addArguments("--disable-dev-shm-usage");
+        driver = new ChromeDriver(chromeOptions);
         wait = new WebDriverWait(driver, 20);
     }
 
     @Test
     public void testSearchResultContainsEnteredSearchKey() {
+        driver.manage().window().setSize(new Dimension(1920, 1080));
         driver.get("https://www.lamoda.by/");
         final String searchKey = "куртка";
-        final String searchFieldPath = "//input[@placeholder='Поиск']";
+        final String searchFieldPath = "//*[@id='menu-wrapper']//input[@class='text-field text-field_large search__input js-search-field']";
         final String searchButtonPath = "//div[@class='button button_blue search__button js-search-button']";
         final String searchResultItemTypePath = "//div[@class='products-catalog__list']//span[@class='products-list-item__type']";
 
@@ -50,6 +57,7 @@ public class LamodaTest {
 
     @Test
     public void testSortByPrice() {
+        driver.manage().window().maximize();
         final String categoryButtonPath = "//div[@id='menu-wrapper']//a[contains(.,'Одежда')]";
         final String sortTypeButtonPath = "//span[@class='products-catalog__sort']//span[@class='button button_right button_wo-pdng-r']";
         final String sortPriceAscendingButtonPath = "//li[@data-order='price_asc']";
@@ -65,7 +73,7 @@ public class LamodaTest {
 
         List<Double> prices = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.xpath(sortResultElementPath)))
                 .stream().map(item -> {
-                    Matcher matcher = Pattern.compile("\\d+.\\d{2,2}").matcher(item.getText());
+                    Matcher matcher = Pattern.compile("\\d+\\.\\d{2}").matcher(item.getText());
                     List<Double> itemPrices = new ArrayList<>();
                     while(matcher.find()) {
                         itemPrices.add(Double.valueOf(matcher.group()));
