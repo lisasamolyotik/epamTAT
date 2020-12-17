@@ -1,8 +1,5 @@
 import io.github.bonigarcia.wdm.WebDriverManager;
-import org.openqa.selenium.By;
-import org.openqa.selenium.Dimension;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -58,14 +55,13 @@ public class LamodaTest {
     @Test
     public void testSortByPrice() {
         driver.manage().window().maximize();
-        final String categoryButtonPath = "//div[@id='menu-wrapper']//a[contains(.,'Одежда')]";
         final String sortTypeButtonPath = "//span[@class='products-catalog__sort']//span[@class='button button_right button_wo-pdng-r']";
         final String sortPriceAscendingButtonPath = "//li[@data-order='price_asc']";
         final String sortResultElementPath = "//div[@class='products-list-item']";
 
-        driver.get("https://www.lamoda.by/");
+        driver.get("https://www.lamoda.by/c/355/clothes-zhenskaya-odezhda/?sitelink=topmenuW&l=2");
 
-        wait.until(ExpectedConditions.elementToBeClickable(By.xpath(categoryButtonPath))).click();
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true)", driver.findElement(By.xpath(sortTypeButtonPath)));
 
         wait.until(ExpectedConditions.elementToBeClickable(By.xpath(sortTypeButtonPath))).click();
 
