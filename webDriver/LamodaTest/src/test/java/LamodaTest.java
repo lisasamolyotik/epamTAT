@@ -30,17 +30,19 @@ public class LamodaTest {
         chromeOptions.addArguments("--disable-dev-shm-usage");
         driver = new ChromeDriver(chromeOptions);
         wait = new WebDriverWait(driver, 20);
+        driver.manage().window().setSize(new Dimension(1920, 1080));
     }
 
     @Test
     public void testSearchResultContainsEnteredSearchKey() {
-        driver.manage().window().setSize(new Dimension(1920, 1080));
+
         driver.get("https://www.lamoda.by/");
         final String searchKey = "куртка";
         final String searchFieldPath = "//*[@id='menu-wrapper']//input[@class='text-field text-field_large search__input js-search-field']";
         final String searchButtonPath = "//div[@class='button button_blue search__button js-search-button']";
         final String searchResultItemTypePath = "//div[@class='products-catalog__list']//span[@class='products-list-item__type']";
 
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true)", driver.findElement(By.xpath(searchFieldPath)));
         wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath(searchFieldPath))).sendKeys(searchKey);
 
         wait.until(ExpectedConditions.elementToBeClickable(By.xpath(searchButtonPath))).click();
@@ -54,7 +56,7 @@ public class LamodaTest {
 
     @Test
     public void testSortByPrice() {
-        driver.manage().window().maximize();
+
         final String sortTypeButtonPath = "//span[@class='products-catalog__sort']//span[@class='button button_right button_wo-pdng-r']";
         final String sortPriceAscendingButtonPath = "//li[@data-order='price_asc']";
         final String sortResultElementPath = "//div[@class='products-list-item']";
@@ -85,3 +87,4 @@ public class LamodaTest {
         driver.quit();
     }
 }
+
