@@ -3,7 +3,6 @@ package com.example.page;
 import com.example.model.ProductItem;
 import com.example.wait.CustomConditions;
 import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindAll;
@@ -20,49 +19,41 @@ import java.util.stream.Collectors;
 
 public class ClothesCategoryPage extends AbstractPage {
 
-    @FindBy(xpath = "//span[@class='products-catalog__sort']//span[@class='button button_right button_wo-pdng-r']")
-    private WebElement sortTypeButton;
+    double defaultPriceValue = 0.0;
 
-    @FindBy(xpath = "//li[@data-order='price_asc']")
-    private WebElement sortPriceAscendingButton;
+    private final String PAGE_URL = "https://www.lamoda.by/c/355/clothes-zhenskaya-odezhda/?sitelink=topmenuW&l=2";
+
+    private String priceFilterPath = "//div[@class='multifilter multifilter_price']";
+    private String brandFilterPath = "//div[@class='multifilter multifilter_brands']";
+
+    private String filterButtonPath = "/div/span";
+    private String applyFilterButtonPath = "//div[@class='multifilter-actions']//span";
 
     @FindAll(@FindBy(xpath = "//*[@class='products-catalog__list']"))
     private WebElement sortResultsList;
 
-    @FindBy(xpath = "//div[@class='multifilter multifilter_price']/div/span")
-    private WebElement filterByPriceButton;
-
-    @FindBy(xpath = "//div[@class='multifilter multifilter_brands']/div/span")
-    private WebElement filterByBrandButton;
-
-    @FindBy(xpath = "//input[@class='text-field range__value range__value_right']")
-    private WebElement maxFilterRangeField;
-
-    @FindBy(xpath = "//input[@class='text-field']")
-    private WebElement filterByBrandField;
-
-    @FindBy(xpath = "//div[@class='multifilter multifilter_brands']//label[@class='multifilter-item__label']")
-    private WebElement multiFilterItems;
-
     @FindBy(xpath = "//div[@class='multifilter multifilter_brands']//div[@class='dropdown']")
     private WebElement brandsMultiFilterContainer;
 
-    @FindBy(xpath = "//div[@class='multifilter multifilter_price']//span[@class='button button_s button_blue multifilter-actions__apply']")
-    private WebElement applyFilterByPriceButton;
-
-    @FindBy(xpath = "//div[@class='multifilter multifilter_brands']//span[@class='button button_s button_blue multifilter-actions__apply']")
-    private WebElement applyFilterByBrandButton;
-
-    /*@FindBy(xpath = "//div[@class='multifilter multifilter_brands']//label[@class='multifilter-item__label']")
-    private WebElement checkboxBrand;*/
-
-    private final String PAGE_URL = "https://www.lamoda.by/c/355/clothes-zhenskaya-odezhda/?sitelink=topmenuW&l=2";
+    private By lowerBoundPriceFieldLocator = By.xpath(priceFilterPath + "//input[@class='text-field range__value range__value_left']");
+    private By upperBoundPriceFieldLocator = By.xpath(priceFilterPath + "//input[@class='text-field range__value range__value_right']");
 
     private By sortPriceAscendingButtonLocator = By.xpath("//li[@data-order='price_asc']");
-    private By applyFilterButtonLocator = By.xpath("//span[@class='button button_s button_blue multifilter-actions__apply']");
-    private By filterByBrandFieldLocator = By.xpath("//input[@class='text-field']");
+
+    private By applyFilterByBrandButtonLocator = By.xpath(brandFilterPath + applyFilterButtonPath);
+    private By applyFilterByPriceButtonLocator = By.xpath(priceFilterPath + applyFilterButtonPath);
+
+    private By filterByBrandFieldLocator = By.xpath(brandFilterPath + "//input[@class='text-field']");
     private By multiFilterItemLocator = By.xpath("//label[@class='multifilter-item__label']");
-    private By brandsMultiFilterContainerLocator = By.xpath("//div[@class='multifilter multifilter_brands']//div[@class='dropdown']");
+
+    private By filterByBrandButtonLocator = By.xpath(brandFilterPath + filterButtonPath);
+    private By filterByPriceButtonLocator = By.xpath(priceFilterPath + filterButtonPath);
+
+    private By productDescriptionLocator = By.className("products-list-item__type");
+    private By productBrandLocator = By.className("products-list-item__brand");
+
+    private By sortResultListItemLocator = By.xpath("//*[@class='products-catalog__list']/div");
+    private By catalogContainerLocator = By.xpath("//div[@class='product-catalog-main']");
 
     public ClothesCategoryPage(WebDriver driver) {
         super(driver);
@@ -72,106 +63,82 @@ public class ClothesCategoryPage extends AbstractPage {
     @Override
     public ClothesCategoryPage openPage() {
         driver.get(PAGE_URL);
-        /*new WebDriverWait(driver, WEBDRIVER_TIMEOUT)
-                .until(CustomConditions.waitForLoad());*/
+        new WebDriverWait(driver, WEBDRIVER_TIMEOUT)
+                .until(CustomConditions.waitForLoad());
         return this;
     }
 
     public ClothesCategoryPage openSortTypes() {
-        /*new WebDriverWait(driver, WEBDRIVER_TIMEOUT)
-                .until(ExpectedConditions.elementToBeClickable(sortTypeButton)).click();*/
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click()", sortTypeButton);
-
+        click(driver.findElement(filterByPriceButtonLocator));
         return this;
     }
 
     public ClothesCategoryPage sortByPriceAscending() {
-        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true)", sortPriceAscendingButton);
+        click(driver.findElement(sortPriceAscendingButtonLocator));
         new WebDriverWait(driver, WEBDRIVER_TIMEOUT)
-                .until(ExpectedConditions.visibilityOfElementLocated(sortPriceAscendingButtonLocator))
-                .click();
+                .until(ExpectedConditions.visibilityOfElementLocated(catalogContainerLocator));
         return this;
     }
 
     public List<ProductItem> getItems() {
         return sortResultsList.findElements(By.xpath("/div"))
                 .stream().map(item -> {
-                    String title = item.findElement(By.className("products-list-item__type")).getText();
+                    String title = item.findElement(productDescriptionLocator).getText();
                     Matcher matcher = Pattern.compile("\\d+\\.\\d{2}").matcher(item.getText());
                     List<Double> itemPrices = new ArrayList<>();
                     while (matcher.find()) {
                         itemPrices.add(Double.valueOf(matcher.group()));
                     }
-                    String brand = item.findElement(By.className("products-list-item__brand")).getText().trim();
-                    return new ProductItem(title, itemPrices.stream().min(Double::compareTo).orElse(0.0), brand);
+                    Double price = itemPrices.stream().min(Double::compareTo).orElse(defaultPriceValue);
+                    String brand = item.findElement(productBrandLocator).getText().trim();
+                    return new ProductItem(title, price, brand);
                 })
                 .collect(Collectors.toList());
     }
 
-    public List<Double> getPrices() {
-        return sortResultsList.findElements(By.xpath("/div"))
-                .stream().map(item -> {
-                    Matcher matcher = Pattern.compile("\\d+\\.\\d{2}").matcher(item.getText());
-                    List<Double> itemPrices = new ArrayList<>();
-                    while (matcher.find()) {
-                        itemPrices.add(Double.valueOf(matcher.group()));
-                    }
-                    return itemPrices.stream().min(Double::compareTo).orElse(.0);
-                }).collect(Collectors.toList());
-
-    }
-
     public ClothesCategoryPage openFilterByPriceDetails() {
-        /*new WebDriverWait(driver, WEBDRIVER_TIMEOUT)
-                .until(ExpectedConditions.elementToBeClickable(filterByPriceButton)).click();*/
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click()", filterByPriceButton);
-        return this;
-    }
-
-    public ClothesCategoryPage inputMaxPrice(Integer price) {
-        new WebDriverWait(driver, WEBDRIVER_TIMEOUT)
-                .until(ExpectedConditions.visibilityOf(maxFilterRangeField)).sendKeys(price.toString());
-//        maxFilterRangeField.sendKeys(price.toString());
-        return this;
-    }
-
-    public ClothesCategoryPage clickApplyFilterByPriceButton() {
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click()", applyFilterByPriceButton);
-//        new WebDriverWait(driver, WEBDRIVER_TIMEOUT)
-//                .until(ExpectedConditions.elementToBeClickable(applyFilterByPriceButton)).click();
-        logger.info("apply button clicked");
-        return this;
-    }
-
-    public ClothesCategoryPage clickApplyFilterByBrandButton() {
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click()", applyFilterByBrandButton);
-//        new WebDriverWait(driver, WEBDRIVER_TIMEOUT)
-//                .until(ExpectedConditions.elementToBeClickable(applyFilterByBrandButton)).click();
-        logger.info("apply button clicked");
+        click(driver.findElement(filterByPriceButtonLocator));
+        logger.info("opened price filter details");
         return this;
     }
 
     public ClothesCategoryPage openFilterByBrandDetails() {
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click()", filterByBrandButton);
-        logger.info("filter by brands details opened");
+        click(driver.findElement(filterByBrandButtonLocator));
+        logger.info("opened brand filter details");
+        return this;
+    }
+
+    public ClothesCategoryPage inputMaxPrice(Integer price) {
+        write(brandsMultiFilterContainer.findElement(upperBoundPriceFieldLocator), price.toString());
+        logger.info("wrote max price bound - " + price);
+        return this;
+    }
+
+    public ClothesCategoryPage clickApplyFilterByPriceButton() {
+        click(driver.findElement(applyFilterByPriceButtonLocator));
+        logger.info("apply button clicked");
+        new WebDriverWait(driver, WEBDRIVER_TIMEOUT)
+                .until(ExpectedConditions.visibilityOfElementLocated(catalogContainerLocator));
+        return this;
+    }
+
+    public ClothesCategoryPage clickApplyFilterByBrandButton() {
+        click(driver.findElement(applyFilterByBrandButtonLocator));
+        logger.info("apply button clicked");
+        new WebDriverWait(driver, WEBDRIVER_TIMEOUT)
+                .until(ExpectedConditions.visibilityOfElementLocated(catalogContainerLocator));
         return this;
     }
 
     public ClothesCategoryPage inputBrand(String brand) {
-//        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true)", brandsMultiFilterContainer.findElement(filterByBrandFieldLocator));
-      new WebDriverWait(driver, WEBDRIVER_TIMEOUT)
-                .until(ExpectedConditions.visibilityOf(filterByBrandField)).sendKeys(brand);
+        write(brandsMultiFilterContainer.findElement(filterByBrandFieldLocator), brand);
         logger.info("wrote keyword to brand input field");
         return this;
     }
 
     public ClothesCategoryPage selectBrandCheckbox() {
-//        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true)", brandsMultiFilterContainer);
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click()", brandsMultiFilterContainer.findElement(multiFilterItemLocator));
+        click(driver.findElement(multiFilterItemLocator));
         logger.info("brand checkbox selected");
-        /*new WebDriverWait(driver, WEBDRIVER_TIMEOUT)
-                .until(ExpectedConditions.elementToBeClickable(brandsMultiFilterContainer.findElement(multiFilterItemLocator))).click();*/
         return this;
-
     }
 }

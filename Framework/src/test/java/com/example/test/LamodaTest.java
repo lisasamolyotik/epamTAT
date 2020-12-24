@@ -1,18 +1,22 @@
 package com.example.test;
 
 import com.example.model.ProductItem;
+import com.example.page.CartPage;
 import com.example.page.ClothesCategoryPage;
 import com.example.page.HomePage;
 import com.example.page.ItemDetailsPage;
+import com.example.service.ProductItemCreator;
+import com.example.type.CountryType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class LamodaTest extends CommonConditions {
 
-   /* @Test
+    @Test
     public void testSearchResultContainsEnteredSearchKey() {
         final String searchKey = "куртка";
 
@@ -21,7 +25,9 @@ public class LamodaTest extends CommonConditions {
                 .inputSearchKey(searchKey)
                 .search()
                 .getItemsTitles()
-                .stream().anyMatch(title -> title.toLowerCase().contains(searchKey));
+                .stream().map(String::toLowerCase)
+                .collect(Collectors.toList())
+                .contains(searchKey);
 
         Assert.assertTrue(resultsContainSearchKey);
     }
@@ -40,7 +46,7 @@ public class LamodaTest extends CommonConditions {
                 .noneMatch(i -> items.get(i).getPrice() > items.get(i + 1).getPrice());
 
         Assert.assertTrue(itemsAreSortedByPriceInAscendingOrder);
-    }*/
+    }
 
     @Test
     public void testItemsAreFiltered() {
@@ -58,9 +64,11 @@ public class LamodaTest extends CommonConditions {
                 .clickApplyFilterByBrandButton()
                 .getItems();
 
+        // TODO:
         boolean pricesAreLessThanMaxBound = items.stream()
-                .noneMatch(item -> item.getPrice() > maxFilterRangeBound);
+                .allMatch(item -> item.getPrice() < maxFilterRangeBound);
 
+        // TODO:
         boolean brandsMatchTheFilterValue = items.stream()
                 .allMatch(item -> item.getBrand().toLowerCase().equals(brandFilterValue.toLowerCase()));
 
@@ -68,24 +76,58 @@ public class LamodaTest extends CommonConditions {
         Assert.assertTrue(brandsMatchTheFilterValue);
     }
 
-   /* @Test
+    @Test
     public void testItemIsAddedToCart() {
-        ItemDetailsPage itemDetailsPage = new ItemDetailsPage(driver)
-                .openPage();
+        ProductItem initialItem = ProductItemCreator.withCredentials();
 
-        ProductItem initialItem = itemDetailsPage.getItem();
-
-        ProductItem itemFromCart = itemDetailsPage
+        ProductItem itemFromCart = new ItemDetailsPage(driver, initialItem)
+                .openPage()
                 .addToCart()
                 .goToCart()
                 .getItemFromCart();
 
-        boolean itemTitleFromCartMatchesToInitialItem = initialItem.getTitle().toLowerCase().contains(itemFromCart.getTitle().toLowerCase());
-        boolean itemBrandFromCartMatchesToInitialItem = initialItem.getBrand().toLowerCase().equals(itemFromCart.getBrand().toLowerCase());
+        boolean itemTitleFromCartMatchesToInitialItem = initialItem.getTitle().equals(itemFromCart.getTitle());
+        boolean itemBrandFromCartMatchesToInitialItem = initialItem.getBrand().equals(itemFromCart.getBrand());
         boolean itemPriceFromCartMatchesToInitialItem = initialItem.getPrice().equals(itemFromCart.getPrice());
 
         Assert.assertTrue(itemTitleFromCartMatchesToInitialItem);
         Assert.assertTrue(itemBrandFromCartMatchesToInitialItem);
         Assert.assertTrue(itemPriceFromCartMatchesToInitialItem);
-    }*/
+    }
+
+    @Test
+    public void testPromoIsNotApplied() {
+        ProductItem initialItem = ProductItemCreator.withCredentials();
+
+        CartPage cartPage = new ItemDetailsPage(driver, initialItem)
+                .openPage()
+                .addToCart()
+                .goToCart()
+                .inputCoupon("coupon")
+                .applyCoupon();
+
+        boolean isPriceDidNotChanged = cartPage
+                .getCartPrice()
+                .equals(initialItem.getPrice());
+
+        boolean isErrorMessageVisible = cartPage
+                .isErrorMessageVisible();
+
+        Assert.assertTrue(isErrorMessageVisible);
+        Assert.assertTrue(isPriceDidNotChanged);
+    }
+
+    @Test
+    public void testCountryIsChanged() {
+        String expectedResult = "https://www.lamoda.kz/";
+
+        boolean isCountryChanged = new HomePage(driver)
+                .openPage()
+                .openChangeCountryDetails()
+                .selectCountry(CountryType.KAZAKHSTAN)
+                .getCurrentUrl()
+                .equals(expectedResult);
+
+        Assert.assertTrue(isCountryChanged);
+    }
 }
